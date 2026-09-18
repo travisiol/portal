@@ -1,12 +1,29 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { usePortalStore } from "@/lib/store/portal";
 import type { TokenGlyph } from "@/types/token";
 import { Rig } from "./Rig";
 import { applyStudioEnvironment, QualityContext, resetSim } from "./sim";
+
+/**
+ * Development only: lets scripts step the scene by hand (scripts/capture.mjs,
+ * browser tooling) where requestAnimationFrame is throttled or frozen.
+ */
+function DevFrameHook() {
+  const advance = useThree((s) => s.advance);
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    const w = window as unknown as { __portalAdvance?: (t: number) => void };
+    w.__portalAdvance = (t: number) => advance(t, true);
+    return () => {
+      delete w.__portalAdvance;
+    };
+  }, [advance]);
+  return null;
+}
 
 interface PortalSceneProps {
   quality: "high" | "low";
@@ -67,6 +84,7 @@ export function PortalScene({ quality, glyph, intro, className }: PortalScenePro
         }}
         style={{ background: "transparent" }}
       >
+        <DevFrameHook />
         <QualityContext value={quality}>
           <ambientLight intensity={0.12} color="#9fb3c0" />
           <directionalLight position={[3.5, 4.5, 6]} intensity={2.4} color="#e6edf2" />
