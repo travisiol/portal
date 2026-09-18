@@ -103,7 +103,7 @@ export function Bezel() {
   const geometry = useMemo(() => latheRing(RIG.bezel.inner, RIG.bezel.outer, RIG.bezel.half, 0.03, 128), []);
   const ref = useRef<THREE.Mesh>(null);
   useFrame((_, dt) => {
-    if (ref.current) ref.current.rotation.z -= dt * (0.05 + sim.energy * 0.25);
+    if (ref.current) ref.current.rotation.z -= dt * (0.05 + sim.energy * 0.25 + sim.sweep * 1.4);
   });
   return <mesh ref={ref} geometry={geometry} material={material} />;
 }
@@ -203,6 +203,11 @@ export function Leds() {
       else if (phase === "building" || phase === "confirming") {
         const d = Math.abs(((f - chase + 1.5) % 1) - 0.5);
         on = Math.max(i % 3 === 0 ? 0.35 : 0.05, 1 - d * 9);
+      } else if (phase === "bridging" && sim.sweep > 0.05) {
+        // loading: a comet with a fading tail circles the ring, three tails apart
+        const head = (sim.sweepAngle / (Math.PI * 2)) % 1;
+        const tail = Math.pow(1 - ((head - f + 1) % 1), 6);
+        on = 0.08 + 0.92 * tail * sim.sweep + 0.25 * (1 - sim.sweep);
       } else if (phase === "open" || phase === "bridging") on = 0.75 + 0.25 * Math.sin(sim.time * 6 + f * 12);
       else if (phase === "complete") on = 0.5 + sim.flash * 0.5;
       else on = i % 2 === 0 ? 0.4 : 0;
@@ -278,6 +283,8 @@ export function EnergySurface() {
       uTime: { value: 0 },
       uEnergy: { value: 0 },
       uFlash: { value: 0 },
+      uSweep: { value: 0 },
+      uSweepAngle: { value: 0 },
       uPointer: { value: new THREE.Vector2() },
       uColorA: { value: ENERGY_A },
       uColorB: { value: ENERGY_B },
@@ -291,6 +298,8 @@ export function EnergySurface() {
     m.uniforms.uTime.value = sim.time;
     m.uniforms.uEnergy.value = sim.energy;
     m.uniforms.uFlash.value = sim.flash;
+    m.uniforms.uSweep.value = sim.sweep;
+    m.uniforms.uSweepAngle.value = sim.sweepAngle;
     (m.uniforms.uPointer.value as THREE.Vector2).set(pointer.x, pointer.y);
   });
   return (
@@ -319,12 +328,13 @@ export function Particles({ count = 520 }: { count?: number }) {
     }
     return { positions, seed, speed, size, angle };
   }, [count]);
-  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uEnergy: { value: 0 }, uPixelRatio: { value: gl.getPixelRatio() }, uColor: { value: ENERGY_B } }), [gl]);
+  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uEnergy: { value: 0 }, uSweep: { value: 0 }, uPixelRatio: { value: gl.getPixelRatio() }, uColor: { value: ENERGY_B } }), [gl]);
   useFrame(() => {
     const m = material.current;
     if (!m) return;
     m.uniforms.uTime.value = sim.time;
     m.uniforms.uEnergy.value = sim.energy;
+    m.uniforms.uSweep.value = sim.sweep;
   });
   return (
     <points frustumCulled={false} renderOrder={2}>
@@ -426,6 +436,10 @@ export function Rig({ glyph }: { glyph: TokenGlyph }) {
     if (store.phase === "complete" && lastPhase.current !== "complete") sim.flash = 1;
     lastPhase.current = store.phase;
     sim.flash = Math.max(0, sim.flash - step * 1.6);
+    // "loading" while the asset is in transit: the sweep runs, then stops dead on arrival
+    const inTransit = store.phase === "bridging" && store.crossing >= 0.45 && store.crossing < 0.8;
+    sim.sweep += ((inTransit ? 1 : 0) - sim.sweep) * (1 - Math.exp(-step * (inTransit ? 3 : 9)));
+    if (sim.sweep > 0.01) sim.sweepAngle += step * (2.2 + 2.6 * sim.sweep);
     if (group.current) {
       const tx = -store.pointer.y * 0.12;
       const ty = store.pointer.x * 0.16;

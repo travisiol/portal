@@ -28,6 +28,12 @@ export function NetworkMap({ className, tall = false }: { className?: string; ta
   useEffect(() => {
     const el = host.current;
     if (!el) return;
+    // Already in view at mount: start now instead of waiting for the observer's first callback.
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight + 200 && rect.bottom > -200) {
+      const t = setTimeout(() => setMounted(true), 0);
+      return () => clearTimeout(t);
+    }
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {

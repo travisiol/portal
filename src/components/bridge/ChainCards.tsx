@@ -86,19 +86,18 @@ export function DestinationCard({ bridge }: { bridge: BridgeController }) {
     <section className={clsx("panel flex flex-col gap-4 p-4 sm:p-5", busy && "pointer-events-none opacity-70")} aria-label="Destination">
       <div className="flex items-center justify-between">
         <Label className="text-white">To</Label>
-        <Label>Destination network</Label>
+        <Label>Destination · receive est.</Label>
       </div>
       <Dropdown ariaLabel="Destination network" items={chainItems} value={destinationChain.id} onChange={setDestinationChain} size="lg" />
       <div className="grid grid-cols-[1fr_auto] gap-2">
-        <div className="field flex h-14 items-center justify-between px-4">
+        <div className="field flex h-14 items-center px-4" title="Estimated amount received">
           {loading ? (
             <Skeleton className="h-6 w-28" />
           ) : q ? (
-            <AnimatedNumber value={receive} format={(v) => v.toLocaleString("en-US", { maximumFractionDigits: v >= 1000 ? 2 : 4 })} className="mono text-2xl font-medium text-white" />
+            <AnimatedNumber value={receive} format={(v) => v.toLocaleString("en-US", { maximumFractionDigits: v >= 1000 ? 2 : 4 })} className="mono truncate text-2xl font-medium text-white" />
           ) : (
             <span className="mono text-2xl font-medium text-muted-2">0.00</span>
           )}
-          <Label className="hidden sm:inline">Receive</Label>
         </div>
         <Dropdown ariaLabel="Destination asset" items={tokenItems} value={destinationTokenSymbol} onChange={setDestinationToken} size="lg" className="w-36" />
       </div>
@@ -112,7 +111,7 @@ export function DestinationCard({ bridge }: { bridge: BridgeController }) {
           <dd className="mono mt-1 text-sm text-white">{loading ? <Skeleton className="h-4 w-12" /> : q ? formatUsd(totalCost) : "—"}</dd>
         </div>
         <div className="panel-inset px-3 py-2">
-          <dt className="label text-[10px]">{ranking.best ? "Best route" : "Route"}</dt>
+          <dt className="label text-[10px]">{ranking.best ? "Best via" : "Via"}</dt>
           <dd className="mt-1 flex items-center gap-1.5 text-sm text-white">
             {loading ? <Skeleton className="h-4 w-14" /> : q ? <span className="truncate">{q.providerName}</span> : "—"}
           </dd>

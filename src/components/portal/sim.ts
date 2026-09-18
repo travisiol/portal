@@ -15,10 +15,14 @@ export interface Sim {
   lock: number;
   /** 0..1 camera dolly through the ring during a crossing. */
   dolly: number;
+  /** 0..1 strength of the "in transit" loading sweep; 0 once the crossing completes. */
+  sweep: number;
+  /** Angle of the sweep, radians. */
+  sweepAngle: number;
   quality: "high" | "low";
 }
 
-export const sim: Sim = { energy: 0, flash: 0, time: 0, lock: 0, dolly: 0, quality: "high" };
+export const sim: Sim = { energy: 0, flash: 0, time: 0, lock: 0, dolly: 0, sweep: 0, sweepAngle: 0, quality: "high" };
 
 /** Static per-scene quality tier, read during render (never from the mutable sim). */
 export const QualityContext = createContext<Sim["quality"]>("high");
@@ -29,7 +33,21 @@ export const resetSim = (quality: Sim["quality"]) => {
   sim.time = 0;
   sim.lock = 0;
   sim.dolly = 0;
+  sim.sweep = 0;
+  sim.sweepAngle = 0;
   sim.quality = quality;
+};
+
+/**
+ * Jump the smoothed values straight to their targets — for the inspector and
+ * captures, where waiting for the lerps means waiting for frames that may
+ * not come.
+ */
+export const primeSim = (v: Partial<Pick<Sim, "energy" | "lock" | "sweep" | "flash">>) => {
+  if (v.energy !== undefined) sim.energy = v.energy;
+  if (v.lock !== undefined) sim.lock = v.lock;
+  if (v.sweep !== undefined) sim.sweep = v.sweep;
+  if (v.flash !== undefined) sim.flash = v.flash;
 };
 
 /** Procedural studio reflections — no HDRI file. Called from Canvas onCreated. */

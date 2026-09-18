@@ -10,6 +10,19 @@ const LABELS = RING_ORDER.map((k) => CHAINS.find((c) => c.key === k)!.label);
 const deg = (rad: number) => (-rad * 180) / Math.PI; // SVG rotates clockwise
 
 /**
+ * Clockwise circle starting at 30° (between two slots) so no engraving sits
+ * on the path seam. Slot i lives at 60°·i counter-clockwise, which is the
+ * fraction (1/12 − i/6) mod 1 along this path.
+ */
+const SEAM = Math.PI / 6;
+const ringPath = (r: number) => {
+  const x = r * Math.cos(SEAM);
+  const y = -r * Math.sin(SEAM);
+  return `M ${x} ${y} A ${r} ${r} 0 1 1 ${-x} ${-y} A ${r} ${r} 0 1 1 ${x} ${y}`;
+};
+const slotOffset = (i: number, n: number) => `${((((1 / 12 - i / n) % 1) + 1) % 1) * 100}%`;
+
+/**
  * The lightweight portal for phones and reduced motion: the same rings,
  * engravings, chevrons and energy core in SVG + CSS, driven by the same store.
  * The rotation transition doubles as the mechanical alignment; the lock is
@@ -39,6 +52,7 @@ export function PortalLite({ className, compact = false }: { className?: string;
   }, [phase, sourceKey, destinationKey, lock]);
 
   const size = compact ? 220 : 320;
+  const inTransit = phase === "bridging" && crossing >= 0.45 && crossing < 0.8;
   const assetX = crossing < 0.45 ? -150 + (crossing / 0.45) * 150 : crossing < 0.62 ? 0 : 150 * Math.min(1, (crossing - 0.62) / 0.18);
   const assetVisible = (phase === "open" || phase === "bridging" || phase === "complete") && (crossing < 0.45 || crossing >= 0.62);
   const assetScale = crossing < 0.45 ? 1 - 0.85 * (crossing / 0.45) : Math.min(1, 0.15 + 0.85 * ((crossing - 0.62) / 0.18));
@@ -61,7 +75,7 @@ export function PortalLite({ className, compact = false }: { className?: string;
             { id: "src", r: 150 },
             { id: "dst", r: 118 },
           ].map(({ id, r }) => (
-            <path key={id} id={`lite-${id}-path`} d={`M ${r} 0 A ${r} ${r} 0 1 0 ${-r} 0 A ${r} ${r} 0 1 0 ${r} 0`} fill="none" />
+            <path key={id} id={`lite-${id}-path`} d={ringPath(r)} fill="none" />
           ))}
         </defs>
 
@@ -85,7 +99,7 @@ export function PortalLite({ className, compact = false }: { className?: string;
           <circle r="150" fill="none" stroke="#30363d" strokeWidth="28" />
           <text fontFamily="var(--font-geist-mono), ui-monospace, monospace" fontSize="12" fontWeight="600" letterSpacing="3" fill="#dfe4e8">
             {LABELS.map((label, i) => (
-              <textPath key={label} href="#lite-src-path" startOffset={`${((i / LABELS.length) * 100 + 100 / LABELS.length / 2) % 100}%`} textAnchor="middle" dominantBaseline="middle">
+              <textPath key={label} href="#lite-src-path" startOffset={slotOffset(i, LABELS.length)} textAnchor="middle" dominantBaseline="middle">
                 {label}
               </textPath>
             ))}
@@ -96,7 +110,7 @@ export function PortalLite({ className, compact = false }: { className?: string;
           <circle r="118" fill="none" stroke="#2a3037" strokeWidth="24" />
           <text fontFamily="var(--font-geist-mono), ui-monospace, monospace" fontSize="10" fontWeight="600" letterSpacing="2.5" fill="#d0d6db">
             {LABELS.map((label, i) => (
-              <textPath key={label} href="#lite-dst-path" startOffset={`${((i / LABELS.length) * 100 + 100 / LABELS.length / 2) % 100}%`} textAnchor="middle" dominantBaseline="middle">
+              <textPath key={label} href="#lite-dst-path" startOffset={slotOffset(i, LABELS.length)} textAnchor="middle" dominantBaseline="middle">
                 {label}
               </textPath>
             ))}
@@ -108,6 +122,14 @@ export function PortalLite({ className, compact = false }: { className?: string;
         <circle r="100" fill="url(#lite-energy)" style={{ opacity: 0.08 + energy * 0.92, transition: "opacity 600ms ease", transformOrigin: "center", animation: energy > 0.3 ? "energy-breathe 3s ease-in-out infinite" : "none" }} />
         <circle r="100" fill="none" stroke="#3A4048" strokeWidth="8" />
         <circle r="96" fill="none" stroke="#70E7FF" strokeWidth="1" opacity={0.15 + energy * 0.6} />
+
+        {/* in transit: a loading arc circles the bezel until the asset arrives */}
+        {inTransit && (
+          <g style={{ transformOrigin: "center", animation: "spin-slow 1.1s linear infinite" }}>
+            <circle r="106" fill="none" stroke="#B9F7FF" strokeWidth="3" strokeLinecap="round" strokeDasharray="120 546" opacity="0.9" />
+            <circle r="106" fill="none" stroke="#70E7FF" strokeWidth="3" strokeLinecap="round" strokeDasharray="40 626" strokeDashoffset="-333" opacity="0.6" />
+          </g>
+        )}
 
         {/* chevrons */}
         <g style={{ transform: `translateX(${locked ? 8 : 0}px)`, transition: "transform 180ms cubic-bezier(0.3,1.6,0.5,1)" }}>

@@ -95,7 +95,7 @@ function Node({ chain, position, hovered, onHover, routes }: { chain: ChainConfi
   const halo = useRef<THREE.MeshBasicMaterial>(null);
   useFrame((state) => {
     if (ref.current) ref.current.rotation.z = state.clock.elapsedTime * 0.2;
-    if (halo.current) halo.current.opacity = (hovered ? 0.5 : 0.18) + (chain.home ? 0.15 : 0) + Math.sin(state.clock.elapsedTime * 1.4) * 0.04;
+    if (halo.current) halo.current.opacity = (hovered ? 0.35 : 0.08) + (chain.home ? 0.1 : 0) + Math.sin(state.clock.elapsedTime * 1.4) * 0.03;
   });
   const size = chain.home ? 0.42 : 0.22;
   return (
@@ -118,8 +118,8 @@ function Node({ chain, position, hovered, onHover, routes }: { chain: ChainConfi
         </mesh>
       )}
       <mesh>
-        <sphereGeometry args={[size * 1.8, 24, 12]} />
-        <meshBasicMaterial ref={halo} color={routes > 0 ? ENERGY : GRAPHITE} transparent opacity={0.18} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        <sphereGeometry args={[size * 1.45, 24, 12]} />
+        <meshBasicMaterial ref={halo} color={routes > 0 ? ENERGY : GRAPHITE} transparent opacity={0.1} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
       </mesh>
       <Label text={chain.label} position={[0, -(size + 0.42), 0]} scale={chain.home ? 1.1 : 0.9} />
     </group>
@@ -133,7 +133,7 @@ function Orbit({ onHover, hovered }: { onHover: (c: ChainConfig | undefined) => 
     map.set(HOME_CHAIN.key, new THREE.Vector3(0, 0, 0));
     others.forEach((c, i) => {
       const a = (i / others.length) * Math.PI * 2 + Math.PI / 2;
-      map.set(c.key, new THREE.Vector3(Math.cos(a) * ORBIT_RADIUS * 1.15, Math.sin(a) * ORBIT_RADIUS * 0.72, 0));
+      map.set(c.key, new THREE.Vector3(Math.cos(a) * ORBIT_RADIUS * 1.3, Math.sin(a) * ORBIT_RADIUS * 0.56, 0));
     });
     return map;
   }, []);
@@ -172,7 +172,7 @@ export default function NetworkScene({ onHover, hovered }: { onHover: (c: ChainC
     <Canvas
       frameloop="always"
       dpr={[1, 1.5]}
-      camera={{ position: [0, -1.2, 8.5], fov: 34 }}
+      camera={{ position: [0, -0.5, 9], fov: 34 }}
       gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}
       onCreated={({ gl, scene }) => {
         gl.setClearColor(0x000000, 0);

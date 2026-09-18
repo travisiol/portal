@@ -59,6 +59,8 @@ precision highp float;
 uniform float uTime;
 uniform float uEnergy;
 uniform float uFlash;
+uniform float uSweep;
+uniform float uSweepAngle;
 uniform vec2 uPointer;
 uniform vec3 uColorA;
 uniform vec3 uColorB;
@@ -96,16 +98,20 @@ void main() {
   // core
   // event horizon: a dark well the lattice falls into, brightest just around it
   float well = smoothstep(0.0, 0.22, rr) * (1.0 - smoothstep(0.22, 0.42, rr));
-  float core = exp(-rr * rr * (9.0 - 3.0 * e)) * (0.08 + 0.9 * e + uFlash * 2.0) + well * e * 0.55;
+  float core = exp(-rr * rr * (9.0 - 3.0 * e)) * (0.08 + 0.7 * e + uFlash * 2.0) + well * e * 0.45;
 
   // nebula body
   float body = (fbm(q * 1.8 - uTime * 0.05) * 0.5 + 0.5);
   vec3 col = vec3(0.012, 0.016, 0.02);
-  col = mix(col, uColorA * 0.34, body * (0.08 + 0.5 * e));
+  col = mix(col, uColorA * 0.34, body * (0.08 + 0.38 * e));
   col += uColorA * lattice;
   col += uColorB * ripple;
   col += mix(uColorA, uColorB, 0.6) * core;
   col += uColorB * uFlash * 0.8 * smoothstep(1.0, 0.0, r);
+
+  // in transit: a radar sweep with a fading trail circles the surface until the asset arrives
+  float trail = pow(1.0 - fract((uSweepAngle - a) / 6.28318), 3.0);
+  col += uColorB * trail * uSweep * 1.1 * smoothstep(1.0, 0.3, r) * smoothstep(0.12, 0.4, r);
 
   // fade to the bezel
   float edge = smoothstep(1.0, 0.9, r);
@@ -121,11 +127,12 @@ attribute float aSize;
 attribute float aAngle;
 uniform float uTime;
 uniform float uEnergy;
+uniform float uSweep;
 uniform float uPixelRatio;
 varying float vAlpha;
 void main() {
   float e = clamp(uEnergy, 0.0, 1.0);
-  float t = fract(aSeed + uTime * aSpeed * (0.05 + 0.35 * e));
+  float t = fract(aSeed + uTime * aSpeed * (0.05 + 0.35 * e + 0.45 * uSweep));
   // pulled inward: radius shrinks from beyond the bezel to the core
   float radius = mix(1.9, 0.04, t * t);
   float angle = aAngle + t * (1.2 + 2.5 * e) + uTime * 0.05;
